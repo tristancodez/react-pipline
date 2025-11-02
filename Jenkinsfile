@@ -19,8 +19,8 @@ pipeline {
     stage('Build React app') {
       steps {
         dir('frontend') {
-          bat 'npm ci'
-          bat 'npm run build'
+          sh 'npm ci'
+          sh 'npm run build'
         }
       }
     }
@@ -28,10 +28,10 @@ pipeline {
     stage('Build and Push Docker Image') {
       steps {
         script {
-          def accountId = bat(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
+          def accountId = sh(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
           def repoUri = "${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
 
-          bat """
+          sh """
           aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${repoUri}
           docker build -t ${ECR_REPO}:${IMAGE_TAG} .
           docker tag ${ECR_REPO}:${IMAGE_TAG} ${repoUri}:${IMAGE_TAG}
@@ -47,7 +47,7 @@ pipeline {
     stage('Deploy to EC2') {
       steps {
         sshagent (credentials: [env.SSH_CRED_ID]) {
-          bat "bash deploy.sh ${DEPLOY_HOST} ${env.IMAGE_URI}"
+          sh "bash deploy.sh ${DEPLOY_HOST} ${env.IMAGE_URI}"
         }
       }
     }
@@ -59,7 +59,7 @@ pipeline {
     }
     failure {
       echo "❌ Deployment failed."
-      
+
     }
   }
 }
