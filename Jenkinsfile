@@ -1,12 +1,11 @@
 pipeline {
   agent any
-
   environment {
     AWS_REGION = 'us-east-1'
     ECR_REPO = 'vite-react-app'
-    AWS_CREDS = credentials('aws-jenkins-creds')
+    AWS_CREDS = credentials('aws-creds')
     SSH_CRED_ID = 'jenkins-ssh-key'
-    DEPLOY_HOST = 'ec2-user@YOUR.EC2.PUBLIC.IP'
+    DEPLOY_HOST = 'ec2-user@54.167.114.21'
     IMAGE_TAG = "build-${env.BUILD_NUMBER}"
   }
 
