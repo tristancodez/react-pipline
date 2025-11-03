@@ -7,6 +7,7 @@ pipeline {
                 echo '🚧 Building Docker image...'
                 sh 'docker build -t simple-html-site .'
             }
+            
         }
 
         stage('Run Container') {
