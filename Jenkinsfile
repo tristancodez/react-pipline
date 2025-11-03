@@ -1,65 +1,33 @@
 pipeline {
-  agent any
-  environment {
-    AWS_REGION = 'us-east-1'
-    ECR_REPO = 'vite-react-app'
-    AWS_CREDS = credentials('aws-creds')
-    SSH_CRED_ID = 'jenkins-ssh-key'
-    DEPLOY_HOST = 'ec2-user@54.167.114.21'
-    IMAGE_TAG = "build-${env.BUILD_NUMBER}"
-  }
+    agent any
 
-  stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-      }
-    }
-
-    stage('Build React app') {
-      steps {
-        dir('frontend') {
-          sh 'npm ci'
-          sh 'npm run build'
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git branch: 'main', url: 'https://github.com/tristancodez/react-pipline.git'
+            }
         }
-      }
-    }
 
-    stage('Build and Push Docker Image') {
-      steps {
-        script {
-          def accountId = sh(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
-          def repoUri = "${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
-
-          sh """
-          aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${repoUri}
-          docker build -t ${ECR_REPO}:${IMAGE_TAG} .
-          docker tag ${ECR_REPO}:${IMAGE_TAG} ${repoUri}:${IMAGE_TAG}
-          docker tag ${ECR_REPO}:${IMAGE_TAG} ${repoUri}:latest
-          docker push ${repoUri}:${IMAGE_TAG}
-          docker push ${repoUri}:latest
-          """
-          env.IMAGE_URI = "${repoUri}:${IMAGE_TAG}"
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t simple-html-site .'
+            }
         }
-      }
-    }
 
-    stage('Deploy to EC2') {
-      steps {
-        sshagent (credentials: [env.SSH_CRED_ID]) {
-          sh "bash deploy.sh ${DEPLOY_HOST} ${env.IMAGE_URI}"
+        stage('Run Container') {
+            steps {
+                sh 'docker rm -f html-site || true'
+                sh 'docker run -d -p 80:80 --name html-site simple-html-site'
+            }
         }
-      }
     }
-  }
 
-  post {
-    success {
-      echo "✅ Deployed successfully: ${env.IMAGE_URI}"
+    post {
+        success {
+            echo "✅ Deployment successful! Access your site via EC2 public IP:80"
+        }
+        failure {
+            echo "❌ Deployment failed."
+        }
     }
-    failure {
-      echo "❌ Deployment failed."
-
-    }
-  }
 }

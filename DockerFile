@@ -1,14 +1,10 @@
-# === build stage ===
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY frontend/package*.json ./frontend/
-WORKDIR /app/frontend
-RUN npm ci
-COPY frontend/ ./frontend/
-RUN npm run build
-
-# === production stage ===
+# Use lightweight nginx image
 FROM nginx:alpine
-COPY --from=builder /app/frontend/dist /usr/share/nginx/html
+
+# Copy website files to nginx web root
+COPY . /usr/share/nginx/html
+
+# Expose port 80
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+
+# nginx automatically serves /usr/share/nginx/html
